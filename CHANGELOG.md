@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- run library tests with the clean virtual environment active through PATH and VIRTUAL_ENV;
+- make console scripts installed by the wheel or its dependencies available during tests;
+- keep source-tree imports isolated.
+
+
 ## 0.1.1
 
 - replace abstract CI terminology with literal repository/build/test/verify/release language;

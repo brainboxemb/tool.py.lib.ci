@@ -55,8 +55,16 @@ Create a new `venv`.
 
 Install the wheel with normal dependency resolution.
 
-Run tests from a working directory that cannot accidentally expose the repository
+Run tests from a working directory that cannot accidentally expose the library
 package source as an import location.
+
+For the test process:
+- prepend the clean environment's `bin` / `Scripts` directory to `PATH`;
+- set `VIRTUAL_ENV` to the clean environment;
+- preserve the remaining process environment.
+
+This makes installed console scripts available without adding the source tree to
+Python's import path.
 
 ## 6. Library test command
 
@@ -65,7 +73,7 @@ The workflow passes the documented library test command to the script.
 The command is parsed without a shell and supports:
 
 - `{python}`: clean-environment Python executable;
-- `{repo}`: absolute repository repository root.
+- `{repo}`: absolute library repository root.
 
 The empty/default command is:
 

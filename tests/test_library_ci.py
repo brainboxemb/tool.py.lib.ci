@@ -35,6 +35,9 @@ class LibraryCITests(unittest.TestCase):
                 version = "0.1.0"
                 dependencies = ["packaging>=23"]
 
+                [project.scripts]
+                sample-library-cli = "sample_library:main"
+
                 [tool.setuptools.packages.find]
                 where = ["src"]
                 """
@@ -43,7 +46,9 @@ class LibraryCITests(unittest.TestCase):
             encoding="utf-8",
         )
         (repo / "src" / "sample_library" / "__init__.py").write_text(
-            'VALUE = "installed-wheel"\n',
+            'VALUE = "installed-wheel"\n'
+            'def main():\n'
+            '    print(VALUE)\n',
             encoding="utf-8",
         )
         assertion = "self.fail('expected failure')" if failing_test else (
@@ -53,6 +58,7 @@ class LibraryCITests(unittest.TestCase):
             textwrap.dedent(
                 f"""
                 import pathlib
+                import shutil
                 import unittest
 
                 import packaging
@@ -66,6 +72,9 @@ class LibraryCITests(unittest.TestCase):
                         repo = pathlib.Path({str(repo)!r}).resolve()
                         self.assertFalse(source.is_relative_to(repo))
                         self.assertTrue(packaging.__version__)
+                        self.assertIsNotNone(
+                            shutil.which("sample-library-cli")
+                        )
 
 
                 if __name__ == "__main__":

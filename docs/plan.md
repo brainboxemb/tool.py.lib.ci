@@ -5,44 +5,21 @@ This file contains only current unfinished work for `tool.py.lib.ci`.
 Requirements live in `docs/requirements.md`. Architecture lives in
 `docs/design.md`.
 
-## 1. Implement the 0.1.1 package-CI core — #2
+## 1. Expose installed command scripts during tests — #5
 
-Implement the first reusable Python-library CI path:
+Prepare release 0.1.2.
 
-- reusable GitHub Actions workflow;
-- exact library checkout;
-- Python version input;
-- one-wheel build;
-- clean virtual environment;
-- install wheel with declared dependencies;
-- run library tests;
-- clear build/install/test failures;
-- no SCons;
-- no CAD-CI;
-- no GitHub Actions cache.
+- run tests with the clean environment's executable directory first on PATH;
+- set VIRTUAL_ENV to the clean environment;
+- preserve source-tree isolation;
+- prove an installed console script is visible during tests;
+- keep build/install/test failure handling unchanged.
 
-Add direct repository tests for every initial repository-test requirement.
+After repository tests pass:
 
-## 2. Release 0.1.1
+1. release 0.1.2 from the tested main commit;
+2. update `tool.py.lib.ci.test` to exact 0.1.2 commit;
+3. pass the external test repository;
+4. remove this section and close #5.
 
-After repository tests are green:
-
-- add explicit version/release metadata;
-- publish release 0.1.1 from the exact tested main commit;
-- document the exact release commit.
-
-Remove this section after the release exists.
-
-## 3. Test the released version externally
-
-Update `brainboxemb/tool.py.lib.ci.test` to pin the exact 0.1.1 release.
-
-Do not use the released version in another repository until the external test repository passes.
-
-## 4. Migrate the first library repository
-
-After the external test passes, migrate
-`brainboxemb/lib.py.cad.verfication` away from `tool.cad.ci`/SCons and onto
-the accepted `tool.py.lib.ci` release.
-
-The migration itself is tracked in that repository.
+Library repositories that use this tool are tracked in their own plans.

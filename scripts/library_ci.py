@@ -161,7 +161,20 @@ def run_tests(
         python=python,
         repo=repo,
     )
-    run_checked(command, cwd=test_root, stage="test")
+    environment = dict(os.environ)
+    environment_root = python.parent.parent
+    environment["VIRTUAL_ENV"] = str(environment_root)
+    environment["PATH"] = (
+        str(python.parent)
+        + os.pathsep
+        + environment.get("PATH", "")
+    )
+    run_checked(
+        command,
+        cwd=test_root,
+        stage="test",
+        env=environment,
+    )
 
 
 def source_commit(repo: Path) -> str:
