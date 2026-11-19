@@ -96,7 +96,7 @@ class LibraryCITests(unittest.TestCase):
         )
         self.assertEqual(
             command,
-            ["/venv/python", "-c", "print(1)", "/library_repo"],
+            ["/venv/python", "-c", "print(1)", "/library"],
         )
 
     def test_default_test_command_uses_clean_python_and_absolute_tests(self):
