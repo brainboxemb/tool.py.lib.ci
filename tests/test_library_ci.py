@@ -19,9 +19,9 @@ SPEC.loader.exec_module(MODULE)
 
 
 class LibraryCITests(unittest.TestCase):
-    def make_consumer(self, root: Path, *, failing_test: bool = False) -> Path:
-        repo = root / "consumer"
-        (repo / "src" / "sample_consumer").mkdir(parents=True)
+    def make_library_repo(self, root: Path, *, failing_test: bool = False) -> Path:
+        repo = root / "library"
+        (repo / "src" / "sample_library").mkdir(parents=True)
         (repo / "tests").mkdir()
         (repo / "pyproject.toml").write_text(
             textwrap.dedent(
@@ -31,7 +31,7 @@ class LibraryCITests(unittest.TestCase):
                 build-backend = "setuptools.build_meta"
 
                 [project]
-                name = "sample-consumer"
+                name = "sample-library"
                 version = "0.1.0"
                 dependencies = ["packaging>=23"]
 
@@ -42,12 +42,12 @@ class LibraryCITests(unittest.TestCase):
             + "\n",
             encoding="utf-8",
         )
-        (repo / "src" / "sample_consumer" / "__init__.py").write_text(
+        (repo / "src" / "sample_library" / "__init__.py").write_text(
             'VALUE = "installed-wheel"\n',
             encoding="utf-8",
         )
         assertion = "self.fail('expected failure')" if failing_test else (
-            "self.assertEqual(sample_consumer.VALUE, 'installed-wheel')"
+            "self.assertEqual(sample_library.VALUE, 'installed-wheel')"
         )
         (repo / "tests" / "test_package.py").write_text(
             textwrap.dedent(
@@ -56,13 +56,13 @@ class LibraryCITests(unittest.TestCase):
                 import unittest
 
                 import packaging
-                import sample_consumer
+                import sample_library
 
 
                 class PackageTests(unittest.TestCase):
                     def test_installed_package(self):
                         {assertion}
-                        source = pathlib.Path(sample_consumer.__file__).resolve()
+                        source = pathlib.Path(sample_library.__file__).resolve()
                         repo = pathlib.Path({str(repo)!r}).resolve()
                         self.assertFalse(source.is_relative_to(repo))
                         self.assertTrue(packaging.__version__)
@@ -92,34 +92,34 @@ class LibraryCITests(unittest.TestCase):
         command = MODULE.test_command(
             "{python} -c 'print(1)' {repo}",
             python=Path("/venv/python"),
-            repo=Path("/consumer"),
+            repo=Path("/library"),
         )
         self.assertEqual(
             command,
-            ["/venv/python", "-c", "print(1)", "/consumer"],
+            ["/venv/python", "-c", "print(1)", "/library_repo"],
         )
 
     def test_default_test_command_uses_clean_python_and_absolute_tests(self):
         command = MODULE.test_command(
             "",
             python=Path("/venv/python"),
-            repo=Path("/consumer"),
+            repo=Path("/library"),
         )
         self.assertEqual(command[0], "/venv/python")
-        self.assertIn("/consumer/tests", command)
+        self.assertIn("/library/tests", command)
 
     def test_pipeline_builds_installs_dependencies_and_tests_installed_wheel(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            repo = self.make_consumer(root)
+            repo = self.make_library_repo(root)
             wheel = MODULE.run_pipeline(repo, root / "work")
             self.assertTrue(wheel.is_file())
             self.assertEqual(wheel.suffix, ".whl")
 
-    def test_failing_consumer_test_propagates(self):
+    def test_failing_library_test_propagates(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            repo = self.make_consumer(root, failing_test=True)
+            repo = self.make_library_repo(root, failing_test=True)
             with self.assertRaises(MODULE.PipelineError) as caught:
                 MODULE.run_pipeline(repo, root / "work")
             self.assertEqual(caught.exception.stage, "test")
@@ -127,7 +127,7 @@ class LibraryCITests(unittest.TestCase):
     def test_build_failure_propagates(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            repo = root / "consumer"
+            repo = root / "library"
             repo.mkdir()
             with self.assertRaises(MODULE.PipelineError) as caught:
                 MODULE.build_wheel(repo, root / "work")

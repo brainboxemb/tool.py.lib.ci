@@ -4,7 +4,7 @@
 
 `tool.py.lib.ci` is the generic CI tool for ordinary Python libraries.
 
-It proves the released-package shape of a consumer from outside that consumer's
+It proves the released-package shape of a repository from outside that repository's
 source package.
 
 ## Hard boundary
@@ -38,7 +38,7 @@ Before changing behavior:
 4. implement the smallest change satisfying the contract;
 5. release only after repository tests pass;
 6. update `tool.py.lib.ci.test` to pin that exact release;
-7. only after black-box acceptance passes may consumers update their pin.
+7. only after external test passes may repositorys update their pin.
 
 ## Repository plan
 

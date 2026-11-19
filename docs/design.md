@@ -11,13 +11,13 @@ The primary public surface is one reusable GitHub Actions workflow:
 .github/workflows/reusable-ci.yml
 ```
 
-Consumers call that workflow at an exact released commit.
+Repositories call that workflow at an exact released commit.
 
 ## 2. Thin workflow
 
 The workflow owns only GitHub-hosted setup:
 
-1. checkout the consumer at the exact source SHA;
+1. checkout the library repository at the exact source SHA;
 2. setup the requested Python version;
 3. call the repository's package-CI script.
 
@@ -37,7 +37,7 @@ It owns:
 - exactly-one-wheel validation;
 - clean virtual environment creation;
 - wheel/dependency installation;
-- consumer test command execution;
+- library test command execution;
 - concise terminal output.
 
 It does not own repository selection, caching or release publication.
@@ -55,17 +55,17 @@ Create a new `venv`.
 
 Install the wheel with normal dependency resolution.
 
-Run tests from a working directory that cannot accidentally expose the consumer
+Run tests from a working directory that cannot accidentally expose the repository
 package source as an import location.
 
-## 6. Consumer test command
+## 6. Library test command
 
-The workflow passes the documented consumer test command to the script.
+The workflow passes the documented library test command to the script.
 
 The command is parsed without a shell and supports:
 
 - `{python}`: clean-environment Python executable;
-- `{repo}`: absolute consumer repository root.
+- `{repo}`: absolute repository repository root.
 
 The empty/default command is:
 
@@ -73,7 +73,7 @@ The empty/default command is:
 {python} -m unittest discover -s {repo}/tests -p test_*.py -v
 ```
 
-Consumers may override it. Do not embed pytest or unittest policy beyond that
+Repositories may override it. Do not embed pytest or unittest policy beyond that
 explicit interface.
 
 ## 7. No cache/state engine
@@ -87,13 +87,13 @@ Every workflow run is intentionally a clean package build/test.
 Release plumbing belongs to this repository, but release publication runs only
 after the repository's own tests pass on `main`.
 
-The released repository commit is the public pin used by consumers and by
+The released repository commit is the public pin used by repositories and by
 `tool.py.lib.ci.test`.
 
-## 9. External black-box acceptance
+## 9. External test repository
 
 `tool.py.lib.ci.test` calls the released reusable workflow from another
 repository.
 
-That acceptance layer proves the public GitHub Actions contract. It must not
+That repository proves the public GitHub Actions contract. It must not
 reimplement generic package-CI behavior.

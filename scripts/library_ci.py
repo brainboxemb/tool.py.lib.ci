@@ -67,7 +67,7 @@ def single_wheel(directory: Path) -> Path:
 
 
 def build_wheel(repo: Path, work: Path) -> Path:
-    """Build exactly one wheel from the consumer repository."""
+    """Build exactly one wheel from the library repository."""
 
     wheel_dir = work / "wheel"
     if wheel_dir.exists():
@@ -152,7 +152,7 @@ def run_tests(
     work: Path,
     command_text: str,
 ) -> None:
-    """Run consumer tests outside the consumer source tree."""
+    """Run library tests outside the library source tree."""
 
     test_root = work / "test"
     test_root.mkdir(parents=True, exist_ok=True)
@@ -165,7 +165,7 @@ def run_tests(
 
 
 def source_commit(repo: Path) -> str:
-    """Return the exact checked-out consumer source commit when available."""
+    """Return the exact checked-out library source commit when available."""
 
     completed = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -186,13 +186,13 @@ def run_pipeline(
     *,
     command_text: str = "",
 ) -> Path:
-    """Build, clean-install and test one consumer package."""
+    """Build, clean-install and test one library package."""
 
     repo = repo.resolve()
     work = work.resolve()
     work.mkdir(parents=True, exist_ok=True)
 
-    print(f"consumer_source={source_commit(repo)}")
+    print(f"source_commit={source_commit(repo)}")
     print(f"build_python={sys.version.split()[0]}")
 
     wheel = build_wheel(repo, work)
@@ -211,7 +211,7 @@ def run_pipeline(
 
 
 def main() -> int:
-    """Run the package-CI pipeline for one consumer repository."""
+    """Run the package-CI pipeline for one library repository."""
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
