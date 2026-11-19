@@ -5,7 +5,7 @@ This file contains only current unfinished work for `tool.py.lib.ci`.
 Requirements live in `docs/requirements.md`. Architecture lives in
 `docs/design.md`.
 
-## 1. Implement the 0.1.0 package-CI core
+## 1. Implement the 0.1.0 package-CI core — #2
 
 Implement the first reusable Python-library CI path:
 

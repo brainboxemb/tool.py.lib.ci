@@ -56,3 +56,26 @@ black-box acceptance repository:
 - `docs/requirements.md` — observable tool contract.
 - `docs/design.md` — implementation architecture.
 - `docs/plan.md` — current unfinished repository work only.
+
+## Consumer usage
+
+Pin an exact released and externally accepted tool revision:
+
+~~~yaml
+jobs:
+  library-ci:
+    uses: brainboxemb/tool.py.lib.ci/.github/workflows/reusable-ci.yml@<exact-release-commit>
+    with:
+      python_version: "3.12"
+~~~
+
+By default the clean installed-wheel environment runs:
+
+~~~text
+{python} -m unittest discover -s {repo}/tests -p test_*.py -v
+~~~
+
+A consumer can provide another `test_command`. The placeholders `{python}`
+and `{repo}` expand to the clean virtual-environment interpreter and the
+absolute consumer repository root. Commands are executed directly, not through
+a shell.

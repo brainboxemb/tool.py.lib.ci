@@ -16,6 +16,9 @@ The reusable workflow accepts at least:
 - Python version, defaulting to Python 3.12;
 - consumer test command or a documented default.
 
+The test command supports `{python}` and `{repo}` placeholders. It is
+executed directly without a shell.
+
 The workflow always operates on the exact requested consumer commit.
 
 ## 3. Build

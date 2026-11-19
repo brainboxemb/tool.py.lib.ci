@@ -62,15 +62,19 @@ package source as an import location.
 
 The workflow passes the documented consumer test command to the script.
 
-The default may be:
+The command is parsed without a shell and supports:
+
+- `{python}`: clean-environment Python executable;
+- `{repo}`: absolute consumer repository root.
+
+The empty/default command is:
 
 ```text
-python -m unittest discover -s tests -v
+{python} -m unittest discover -s {repo}/tests -p test_*.py -v
 ```
 
-if the first implementation needs a default, but consumers may override it.
-
-Do not embed pytest or unittest policy beyond that explicit interface.
+Consumers may override it. Do not embed pytest or unittest policy beyond that
+explicit interface.
 
 ## 7. No cache/state engine
 

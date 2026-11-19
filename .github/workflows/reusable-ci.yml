@@ -1,0 +1,56 @@
+name: Reusable Python library CI
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Exact consumer source commit; defaults to the triggering source commit.
+        required: false
+        type: string
+        default: ""
+      python_version:
+        description: Python version used to build and test the consumer.
+        required: false
+        type: string
+        default: "3.12"
+      test_command:
+        description: Consumer test command. Supports {python} and {repo}; empty uses unittest discovery.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PY_LIB_CI_SOURCE_SHA: ${{ inputs.source_sha != '' && inputs.source_sha || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
+
+    steps:
+      - name: Checkout consumer source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PY_LIB_CI_SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Checkout called tool revision
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .tool-py-lib-ci
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Build, install and test consumer wheel
+        run: |
+          python .tool-py-lib-ci/scripts/library_ci.py \
+            --repo "$GITHUB_WORKSPACE" \
+            --work "$RUNNER_TEMP/py-lib-ci" \
+            --test-command "${{ inputs.test_command }}"
