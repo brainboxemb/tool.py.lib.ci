@@ -44,6 +44,11 @@ Install:
 The test environment must not rely on dependencies that happen to exist in the
 GitHub runner image.
 
+During the test command, the clean environment's executable directory must be
+first on `PATH` and `VIRTUAL_ENV` must point to that environment. Console
+scripts installed by the wheel or its declared dependencies must therefore be
+available to the tests.
+
 ## 5. Test execution
 
 Run the library's complete declared test command in the clean environment.
