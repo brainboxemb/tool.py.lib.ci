@@ -4,17 +4,17 @@ on:
   workflow_call:
     inputs:
       source_sha:
-        description: Exact consumer source commit; defaults to the triggering source commit.
+        description: Exact library source commit; defaults to the triggering source commit.
         required: false
         type: string
         default: ""
       python_version:
-        description: Python version used to build and test the consumer.
+        description: Python version used to build and test the library repository.
         required: false
         type: string
         default: "3.12"
       test_command:
-        description: Consumer test command. Supports {python} and {repo}; empty uses unittest discovery.
+        description: Library test command. Supports {python} and {repo}; empty uses unittest discovery.
         required: false
         type: string
         default: ""
@@ -29,7 +29,7 @@ jobs:
       PY_LIB_CI_SOURCE_SHA: ${{ inputs.source_sha != '' && inputs.source_sha || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
 
     steps:
-      - name: Checkout consumer source
+      - name: Checkout library source
         uses: actions/checkout@v4
         with:
           ref: ${{ env.PY_LIB_CI_SOURCE_SHA }}
@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: ${{ inputs.python_version }}
 
-      - name: Build, install and test consumer wheel
+      - name: Build, install and test library wheel
         run: |
           python .tool-py-lib-ci/scripts/library_ci.py \
             --repo "$GITHUB_WORKSPACE" \

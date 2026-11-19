@@ -8,29 +8,29 @@ The tool provides generic CI for one ordinary Python library repository.
 
 It is not a CAD CI system.
 
-## 2. Consumer input
+## 2. Repository input
 
 The reusable workflow accepts at least:
 
-- exact consumer source SHA;
+- exact library source SHA;
 - Python version, defaulting to Python 3.12;
-- consumer test command or a documented default.
+- library test command or a documented default.
 
 The test command supports `{python}` and `{repo}` placeholders. It is
 executed directly without a shell.
 
-The workflow always operates on the exact requested consumer commit.
+The workflow always operates on the exact requested library commit.
 
 ## 3. Build
 
-The workflow builds the consumer package as a wheel.
+The workflow builds the library package as a wheel.
 
 Requirements:
 
-- build from the checked-out consumer source;
+- build from the checked-out library source;
 - produce exactly one `.whl`;
 - fail if zero or multiple wheels are produced;
-- do not import the consumer package from its source tree to prove success.
+- do not import the library package from its source tree to prove success.
 
 ## 4. Clean installation
 
@@ -46,9 +46,9 @@ GitHub runner image.
 
 ## 5. Test execution
 
-Run the consumer's complete declared test command in the clean environment.
+Run the library's complete declared test command in the clean environment.
 
-The consumer controls test content.
+The library repository controls test content.
 
 The tool owns only execution and result propagation.
 
@@ -59,14 +59,14 @@ The workflow must clearly fail when:
 - package build fails;
 - wheel count is not exactly one;
 - wheel/dependency installation fails;
-- the consumer test command exits non-zero.
+- the library test command exits non-zero.
 
 The public workflow does not reinterpret a failed test as success.
 
 ## 7. Source-isolation proof
 
 The test environment must prove that the installed wheel is used rather than an
-accidental import from the consumer working tree.
+accidental import from the library working tree.
 
 The initial implementation must include an automated test for this behavior.
 
@@ -75,7 +75,7 @@ The initial implementation must include an automated test for this behavior.
 The public GitHub Actions interface is one reusable workflow callable from
 another repository.
 
-Consumers pin one exact released repository revision.
+Repositories pin one exact released repository revision.
 
 ## 9. No cache
 
@@ -97,25 +97,25 @@ The tool must not invoke or depend on:
 
 The workflow logs must make these facts visible:
 
-- checked-out consumer commit;
+- checked-out library commit;
 - Python version;
 - built wheel filename;
 - successful wheel installation;
-- consumer test command;
+- library test command;
 - final pass/fail.
 
 A separate durable build-store format is not required for the first release.
 
-## 12. Release qualification
+## 12. Release verification
 
-Before a release is adopted by consumers:
+Before a release is used by another repository:
 
 1. repository tests pass;
 2. the tool is released at an exact commit;
 3. `tool.py.lib.ci.test` pins that exact release;
-4. black-box acceptance passes from the external test repository.
+4. the external test repository passes.
 
-## 13. Initial acceptance tests
+## 13. Initial repository tests
 
 The implementation repository must test at least:
 

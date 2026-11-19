@@ -3,7 +3,7 @@
 Generic CI for ordinary Python libraries.
 
 The tool provides one reusable GitHub Actions workflow that builds and tests a
-consumer Python package from the outside.
+Python library repository from the outside.
 
 ## Purpose
 
@@ -12,19 +12,19 @@ logic merely to prove that its released package can be built and tested.
 
 `tool.py.lib.ci` owns that generic package-CI path.
 
-Typical consumers include reusable Python libraries such as
+Typical repositories include reusable Python libraries such as
 `lib.py.cad.verfication`.
 
 ## Responsibilities
 
 The first release must:
 
-- check out the exact consumer source commit;
+- check out the exact library source commit;
 - set up the requested Python version;
 - build exactly one wheel;
 - create a clean test environment;
 - install that wheel including declared dependencies;
-- run the consumer test command against the installed wheel;
+- run the library test command against the installed wheel;
 - fail clearly on build, install or test failure;
 - expose a simple successful/failed workflow result.
 
@@ -44,10 +44,10 @@ This tool does **not** provide:
 
 ## Released-stack rule
 
-A consumer must pin an exact released `tool.py.lib.ci` revision.
+A repository must pin an exact released `tool.py.lib.ci` revision.
 
-Before a consumer adopts a release, that exact revision must pass the
-black-box acceptance repository:
+Before a repository uses a release, that exact revision must pass the
+external test repository:
 
 `brainboxemb/tool.py.lib.ci.test`
 
@@ -57,7 +57,7 @@ black-box acceptance repository:
 - `docs/design.md` — implementation architecture.
 - `docs/plan.md` — current unfinished repository work only.
 
-## Consumer usage
+## Repository usage
 
 Pin an exact released and externally accepted tool revision:
 
@@ -75,7 +75,7 @@ By default the clean installed-wheel environment runs:
 {python} -m unittest discover -s {repo}/tests -p test_*.py -v
 ~~~
 
-A consumer can provide another `test_command`. The placeholders `{python}`
+A repository can provide another `test_command`. The placeholders `{python}`
 and `{repo}` expand to the clean virtual-environment interpreter and the
-absolute consumer repository root. Commands are executed directly, not through
+absolute library repository root. Commands are executed directly, not through
 a shell.
