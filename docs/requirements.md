@@ -165,3 +165,36 @@ change is documentation-only.
 
 All pushes, explicit source overrides, empty/unknown change sets, mixed changes
 and changes outside `docs/` run the full package CI.
+
+
+## 16. Documentation-only push events
+
+In addition to the pull-request rule, the reusable workflow may classify a push
+as documentation-only when all of these are true:
+
+- the caller event is `push`;
+- no explicit `source_sha` override is supplied;
+- the push is not forced;
+- the event provides a non-zero `before` commit;
+- at least one path differs between `before` and the tested source commit;
+- every changed path is below `docs/`.
+
+Changed paths use a NUL-delimited Git diff with rename detection disabled.
+
+Forced pushes, initial/zero-before pushes, malformed or unavailable context,
+mixed changes and any path outside `docs/` must run full package CI.
+
+### Change-scope output
+
+The reusable workflow exposes one output named `change_scope`.
+
+Its value is exactly:
+
+- `docs-only`; or
+- `full`.
+
+The output reflects the scope used by the package-validation job. It lets a
+caller avoid its own downstream release/publication job when that caller's
+policy says documentation-only changes cannot produce a release.
+
+The tool does not decide consumer release policy.
