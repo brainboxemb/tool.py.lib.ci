@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- cancel superseded reusable Python-library CI runs for the same caller repository, workflow and PR/branch;
+- keep different caller scopes independent;
+- keep the concurrency policy inside the reusable workflow so consumers do not duplicate it.
+
 ## 0.1.2
 
 - run library tests with the clean virtual environment active through PATH and VIRTUAL_ENV;
