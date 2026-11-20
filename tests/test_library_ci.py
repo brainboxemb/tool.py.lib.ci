@@ -169,6 +169,19 @@ class LibraryCITests(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertNotIn(value, workflow)
 
+    def test_reusable_workflow_cancels_only_same_caller_scope(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "reusable-ci.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("concurrency:", workflow)
+        self.assertIn("cancel-in-progress: true", workflow)
+        self.assertIn("github.repository", workflow)
+        self.assertIn("github.workflow", workflow)
+        self.assertIn(
+            "github.event.pull_request.number || github.ref",
+            workflow,
+        )
+
     def test_reusable_workflow_uses_called_tool_revision(self):
         workflow = (
             ROOT / ".github" / "workflows" / "reusable-ci.yml"
