@@ -121,3 +121,25 @@ The group key is derived from caller context and must distinguish:
 
 This is workflow scheduling only. It does not introduce cache, incremental
 execution or repository-selection behavior.
+
+
+## 11. Documentation-only classification
+
+The called workflow still checks out the caller source and the exact called
+tool revision.
+
+For a normal pull request with no explicit `source_sha`, it fetches the exact
+PR base commit and obtains a NUL-delimited changed-path list with Git rename
+detection disabled. Disabling rename detection makes a code-to-docs move appear
+as a code deletion plus docs addition, so it cannot be misclassified as
+documentation-only.
+
+A small tool-owned classifier returns `docs-only` only for a non-empty set in
+which every path starts with `docs/`.
+
+The workflow then:
+
+- emits one explicit docs-only skip message and returns success; or
+- sets up Python and runs the unchanged package-CI script.
+
+Unknown input always selects the full path.
