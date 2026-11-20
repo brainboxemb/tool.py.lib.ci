@@ -73,7 +73,8 @@ jobs:
 
       - name: Skip package validation for documentation-only change
         if: steps.scope.outputs.scope == 'docs-only'
-        run: echo "Python library CI skipped build/install/test: ${{ steps.scope.outputs.reason }}"
+        run: |
+          echo "Python library CI skipped build/install/test: ${{ steps.scope.outputs.reason }}"
 
       - name: Set up Python
         if: steps.scope.outputs.scope != 'docs-only'
