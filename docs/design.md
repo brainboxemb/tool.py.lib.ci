@@ -143,3 +143,28 @@ The workflow then:
 - sets up Python and runs the unchanged package-CI script.
 
 Unknown input always selects the full path.
+
+
+## 12. Push classification and workflow output
+
+The change-classification step selects one comparison range:
+
+- pull request: `pull_request.base.sha .. tested source sha`;
+- normal push: `event.before .. tested source sha`;
+- all other contexts: no comparison, therefore `full`.
+
+Before using the push range, the workflow checks that:
+
+- `source_sha` input is empty;
+- the push is not forced;
+- `before` is a 40-character hexadecimal SHA that is not all zeroes.
+
+The selected base commit is fetched explicitly. Git then produces
+NUL-delimited names with rename detection disabled.
+
+The `test` job exports the classifier result as `change_scope`, and
+`workflow_call.outputs.change_scope` forwards that exact job output to the
+caller.
+
+This output is observation only. It does not create package-release policy in
+the tool.

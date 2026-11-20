@@ -186,9 +186,12 @@ class LibraryCITests(unittest.TestCase):
         workflow = (
             ROOT / ".github" / "workflows" / "reusable-ci.yml"
         ).read_text(encoding="utf-8")
-        self.assertIn("Classify pull request change", workflow)
+        self.assertIn("Classify repository change", workflow)
         self.assertIn("git diff --name-only -z --no-renames", workflow)
-        self.assertIn("scripts/change_scope.py", workflow)
+        self.assertIn("scripts/change_scope.py base", workflow)
+        self.assertIn("scripts/change_scope.py classify", workflow)
+        self.assertIn("PUSH_BEFORE_SHA", workflow)
+        self.assertIn("PUSH_FORCED", workflow)
         self.assertIn(
             "Skip package validation for documentation-only change",
             workflow,
@@ -198,6 +201,9 @@ class LibraryCITests(unittest.TestCase):
             workflow,
         )
         self.assertIn("SOURCE_SHA_INPUT", workflow)
+        self.assertIn("change_scope:", workflow)
+        self.assertIn("jobs.test.outputs.change_scope", workflow)
+        self.assertIn("steps.scope.outputs.scope", workflow)
 
     def test_reusable_workflow_uses_called_tool_revision(self):
         workflow = (
