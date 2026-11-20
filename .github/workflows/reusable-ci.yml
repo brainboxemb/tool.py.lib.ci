@@ -47,12 +47,42 @@ jobs:
           path: .tool-py-lib-ci
           fetch-depth: 1
 
+      - name: Classify pull request change
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          SOURCE_SHA_INPUT: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          scope="full"
+          reason="full package validation required"
+
+          if [[ "$EVENT_NAME" == "pull_request" && -z "$SOURCE_SHA_INPUT" && -n "$BASE_SHA" ]]; then
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+            git diff --name-only -z --no-renames "$BASE_SHA" "$PY_LIB_CI_SOURCE_SHA"               > "$RUNNER_TEMP/py-lib-ci-changed-paths"
+            scope="$(python3 .tool-py-lib-ci/scripts/change_scope.py "$RUNNER_TEMP/py-lib-ci-changed-paths")"
+            if [[ "$scope" == "docs-only" ]]; then
+              reason="documentation-only pull request under docs/"
+            fi
+          fi
+
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+
+      - name: Skip package validation for documentation-only change
+        if: steps.scope.outputs.scope == 'docs-only'
+        run: echo "Python library CI skipped build/install/test: ${{ steps.scope.outputs.reason }}"
+
       - name: Set up Python
+        if: steps.scope.outputs.scope != 'docs-only'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python_version }}
 
       - name: Build, install and test library wheel
+        if: steps.scope.outputs.scope != 'docs-only'
         run: |
           python .tool-py-lib-ci/scripts/library_ci.py \
             --repo "$GITHUB_WORKSPACE" \
