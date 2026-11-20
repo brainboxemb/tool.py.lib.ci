@@ -2,6 +2,10 @@ name: Reusable Python library CI
 
 on:
   workflow_call:
+    outputs:
+      change_scope:
+        description: Change scope selected for package validation.
+        value: ${{ jobs.test.outputs.change_scope }}
     inputs:
       source_sha:
         description: Exact library source commit; defaults to the triggering source commit.
@@ -29,6 +33,8 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      change_scope: ${{ steps.scope.outputs.scope }}
     env:
       PY_LIB_CI_SOURCE_SHA: ${{ inputs.source_sha != '' && inputs.source_sha || (github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha) }}
 
@@ -47,24 +53,35 @@ jobs:
           path: .tool-py-lib-ci
           fetch-depth: 1
 
-      - name: Classify pull request change
+      - name: Classify repository change
         id: scope
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          PULL_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          PUSH_BEFORE_SHA: ${{ github.event.before || '' }}
+          PUSH_FORCED: ${{ github.event.forced && 'true' || 'false' }}
           SOURCE_SHA_INPUT: ${{ inputs.source_sha }}
         run: |
           set -euo pipefail
           scope="full"
           reason="full package validation required"
 
-          if [[ "$EVENT_NAME" == "pull_request" && -z "$SOURCE_SHA_INPUT" && -n "$BASE_SHA" ]]; then
-            git fetch --no-tags --depth=1 origin "$BASE_SHA"
-            git diff --name-only -z --no-renames "$BASE_SHA" "$PY_LIB_CI_SOURCE_SHA"               > "$RUNNER_TEMP/py-lib-ci-changed-paths"
-            scope="$(python3 .tool-py-lib-ci/scripts/change_scope.py "$RUNNER_TEMP/py-lib-ci-changed-paths")"
+          base_sha="$(python3 .tool-py-lib-ci/scripts/change_scope.py base \
+            --event "$EVENT_NAME" \
+            --source-sha-input "$SOURCE_SHA_INPUT" \
+            --pull-base-sha "$PULL_BASE_SHA" \
+            --push-before-sha "$PUSH_BEFORE_SHA" \
+            --push-forced "$PUSH_FORCED")"
+
+          if [[ -n "$base_sha" ]]; then
+            git fetch --no-tags --depth=1 origin "$base_sha"
+            git diff --name-only -z --no-renames "$base_sha" "$PY_LIB_CI_SOURCE_SHA" \
+              > "$RUNNER_TEMP/py-lib-ci-changed-paths"
+            scope="$(python3 .tool-py-lib-ci/scripts/change_scope.py classify \
+              "$RUNNER_TEMP/py-lib-ci-changed-paths")"
             if [[ "$scope" == "docs-only" ]]; then
-              reason="documentation-only pull request under docs/"
+              reason="documentation-only change under docs/"
             fi
           fi
 
