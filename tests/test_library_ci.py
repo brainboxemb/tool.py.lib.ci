@@ -182,6 +182,23 @@ class LibraryCITests(unittest.TestCase):
             workflow,
         )
 
+    def test_reusable_workflow_keeps_docs_only_check_successful(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "reusable-ci.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Classify pull request change", workflow)
+        self.assertIn("git diff --name-only -z --no-renames", workflow)
+        self.assertIn("scripts/change_scope.py", workflow)
+        self.assertIn(
+            "Skip package validation for documentation-only change",
+            workflow,
+        )
+        self.assertIn(
+            "if: steps.scope.outputs.scope != 'docs-only'",
+            workflow,
+        )
+        self.assertIn("SOURCE_SHA_INPUT", workflow)
+
     def test_reusable_workflow_uses_called_tool_revision(self):
         workflow = (
             ROOT / ".github" / "workflows" / "reusable-ci.yml"

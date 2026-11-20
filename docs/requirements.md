@@ -147,3 +147,21 @@ PRs/branches must remain independent.
 
 Consumer repositories must not need to duplicate this normal concurrency
 policy.
+
+
+## 15. Documentation-only pull requests
+
+The reusable workflow may skip package build/install/test only for a pull
+request when:
+
+- no explicit `source_sha` override is supplied;
+- at least one path changed;
+- every changed path is below `docs/`.
+
+The required workflow/job check must still complete successfully.
+
+The workflow must print that full package validation was skipped because the
+change is documentation-only.
+
+All pushes, explicit source overrides, empty/unknown change sets, mixed changes
+and changes outside `docs/` run the full package CI.
