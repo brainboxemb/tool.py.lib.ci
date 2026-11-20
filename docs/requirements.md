@@ -135,3 +135,15 @@ The implementation repository must test at least:
 - install failure propagation;
 - source-tree import isolation;
 - absence of SCons/CAD-CI/cache behavior.
+
+
+## 14. Superseded run cancellation
+
+The reusable workflow must cancel an older in-progress run when a newer run is
+started for the same caller repository, caller workflow and PR/branch.
+
+Different caller repositories, different caller workflows and different
+PRs/branches must remain independent.
+
+Consumer repositories must not need to duplicate this normal concurrency
+policy.

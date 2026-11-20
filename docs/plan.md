@@ -13,23 +13,37 @@ The latest released and externally tested revision is:
 - version: 0.1.2
 - commit: `9045367540102ba2208c517e45a52ddad4bb60ea`
 
-The tool now builds one wheel, installs it with dependencies in a clean
+The tool builds one wheel, installs it with dependencies in a clean
 environment, runs tests outside the source tree, and exposes installed console
 scripts through the clean environment PATH.
 
-There is no active functional implementation work in this repository at this
-snapshot. Current work is in library repositories adopting the released tool.
+## Current goal
 
-## Open issue assessment — 2026-11-19
+Complete #10: cancel superseded reusable Python-library CI runs centrally.
+
+This must remain generic Python-library CI behavior. Consumer repositories must
+not need their own concurrency block for normal library CI.
+
+## Execution order
+
+1. Add one reusable-workflow concurrency contract that separates caller
+   repository, caller workflow and PR/branch.
+2. Set `cancel-in-progress: true` so a newer run supersedes only an older run
+   for that same caller scope.
+3. Prove the public workflow contract in repository tests.
+4. Release the change only after repository CI is green.
+5. Update `tool.py.lib.ci.test` to the exact release and externally prove it.
+6. Then implement #11 as a separate change.
+
+## Open issue assessment — 2026-11-20
 
 | Issue | Status | Assessment |
 | --- | --- | --- |
-| #8 Make docs/plan.md the repository work source of truth | now | Repository-process housekeeping. Close after this plan/AGENTS update is merged. |
-| #2 Implement Python library CI 0.1.0 core | effectively complete but still open | The core was implemented and released as 0.1.0, then refined through 0.1.2 and externally tested. Review the original checklist and close if no historical requirement remains. |
+| #10 Cancel superseded Python library CI runs centrally | now | Small generic maintenance improvement that prevents wasted overlapping library CI work. |
+| #11 Skip expensive Python-library tests for documentation-only changes | next | Larger maintenance optimization; keep separate from concurrency cancellation. |
+| #2 Implement Python library CI 0.1.0 core | effectively complete but still open | Core behavior shipped through 0.1.2 and is externally tested; close separately after historical checklist review. |
 
-## Next action
+## Boundary
 
-Do not invent new tool work while `lib.py.cad.ci` and
-`lib.py.cad.verfication` adopt 0.1.2. If those migrations expose a genuinely
-generic Python-library CI defect, open a new focused issue here, fix it, release
-a new exact revision, and test that revision externally before adoption.
+No CAD-CI, SCons, Forge, model-selection or cache behavior belongs in this
+repository.
