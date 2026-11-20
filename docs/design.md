@@ -105,3 +105,19 @@ repository.
 
 That repository proves the public GitHub Actions contract. It must not
 reimplement generic package-CI behavior.
+
+
+## 10. Reusable workflow concurrency
+
+The reusable workflow owns one GitHub Actions concurrency group.
+
+The group key is derived from caller context and must distinguish:
+
+- caller repository;
+- caller workflow;
+- caller PR/branch reference.
+
+`cancel-in-progress` is enabled.
+
+This is workflow scheduling only. It does not introduce cache, incremental
+execution or repository-selection behavior.
