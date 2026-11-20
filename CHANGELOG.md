@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5
+
+- classify safely comparable non-forced push events for documentation-only package-CI skipping;
+- fail safe to full CI for forced pushes, zero/invalid before SHAs and explicit source overrides;
+- expose `change_scope` (`docs-only` or `full`) as a reusable-workflow output for caller-owned downstream policy;
+- preserve NUL-delimited changed paths and rename-disabled Git comparison semantics.
+
 ## 0.1.4
 
 - keep the reusable CI check successful for pull requests that change only files below `docs/`;
