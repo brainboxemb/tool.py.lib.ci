@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- keep the reusable CI check successful for pull requests that change only files below `docs/`;
+- skip setup-python and package build/install/test for that conservative docs-only case;
+- fail safe to full package CI for pushes, explicit source overrides, mixed/empty/unknown changes, and any path outside `docs/`;
+- classify changed paths centrally with rename detection disabled and print the skip reason.
+
 ## 0.1.3
 
 - cancel superseded reusable Python-library CI runs for the same caller repository, workflow and PR/branch;
