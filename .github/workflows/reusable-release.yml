@@ -1,0 +1,164 @@
+# Public owner-issued release workflow for ordinary Python libraries.
+# Generic GitHub release transaction only; repository validation is an optional
+# consumer-owned Python hook.
+
+name: Reusable Python library release
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: Exact issue-comment release command: /release vX.Y.Z <40-char-sha>.
+        required: true
+        type: string
+      issue_number:
+        description: Caller issue number used for publication reporting.
+        required: true
+        type: number
+      stable_ref:
+        description: Stable branch whose current head must equal the release SHA.
+        required: false
+        type: string
+        default: main
+      validator_path:
+        description: Optional repository-relative Python validator accepting --version, --target-sha and --notes-out.
+        required: false
+        type: string
+        default: ""
+    outputs:
+      tag:
+        description: Published or verified vX.Y.Z tag.
+        value: ${{ jobs.release.outputs.tag }}
+      target_sha:
+        description: Exact released commit.
+        value: ${{ jobs.release.outputs.target_sha }}
+      release_url:
+        description: GitHub Release URL.
+        value: ${{ jobs.release.outputs.release_url }}
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      !github.event.issue.pull_request &&
+      startsWith(inputs.command, '/release ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: py-lib-release-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      tag: ${{ steps.publish.outputs.tag }}
+      target_sha: ${{ steps.publish.outputs.target_sha }}
+      release_url: ${{ steps.publish.outputs.release_url }}
+    env:
+      TOOL_ROOT: ${{ github.workspace }}/.tool-py-lib-ci
+
+    steps:
+      - name: Validate caller release context
+        shell: bash
+        env:
+          ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          INPUT_ISSUE: ${{ inputs.issue_number }}
+          EVENT_COMMAND: ${{ github.event.comment.body }}
+          INPUT_COMMAND: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          [ "$ACTOR" = "$OWNER" ] || {
+            echo "ERROR: only the repository owner may publish a release" >&2
+            exit 2
+          }
+          [ "$INPUT_ISSUE" = "$EVENT_ISSUE" ] || {
+            echo "ERROR: issue_number does not match triggering issue" >&2
+            exit 2
+          }
+          [ "$INPUT_COMMAND" = "$EVENT_COMMAND" ] || {
+            echo "ERROR: command does not match triggering comment" >&2
+            exit 2
+          }
+
+      - name: Checkout called release tool revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .tool-py-lib-ci
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Parse exact release request
+        id: request
+        shell: bash
+        run: |
+          python "$TOOL_ROOT/scripts/release_command.py" parse \
+            --command "${{ inputs.command }}" \
+            --validator-path "${{ inputs.validator_path }}" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Checkout exact requested library source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.request.outputs.target_sha }}
+          path: source
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Run repository release validator
+        if: steps.request.outputs.validator_path != ''
+        working-directory: source
+        shell: bash
+        env:
+          VALIDATOR: ${{ steps.request.outputs.validator_path }}
+          VERSION: ${{ steps.request.outputs.version }}
+          TARGET_SHA: ${{ steps.request.outputs.target_sha }}
+          NOTES_OUT: ${{ runner.temp }}/py-lib-release-notes.md
+        run: |
+          python "$VALIDATOR" \
+            --version "$VERSION" \
+            --target-sha "$TARGET_SHA" \
+            --notes-out "$NOTES_OUT"
+
+      - name: Publish or verify exact GitHub release
+        id: publish
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python "$TOOL_ROOT/scripts/release_command.py" publish \
+            --repository "$GITHUB_REPOSITORY" \
+            --version "${{ steps.request.outputs.version }}" \
+            --target-sha "${{ steps.request.outputs.target_sha }}" \
+            --stable-ref "${{ inputs.stable_ref }}" \
+            --notes-file "${{ runner.temp }}/py-lib-release-notes.md" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Record release on triggering issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          TAG: ${{ steps.publish.outputs.tag }}
+          TARGET_SHA: ${{ steps.publish.outputs.target_sha }}
+          RELEASE_URL: ${{ steps.publish.outputs.release_url }}
+        run: |
+          printf -v body 'Published and verified `%s` at `%s`: %s' \
+            "$TAG" "$TARGET_SHA" "$RELEASE_URL"
+          gh api -X POST \
+            "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments" \
+            -f body="$body" \
+            >/dev/null
