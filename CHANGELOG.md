@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+- create missing release tags explicitly as annotated Git tag objects before
+  creating the GitHub Release;
+- reject an existing lightweight release tag instead of silently accepting a
+  weaker tag shape;
+- verify the annotated tag resolves to the exact stable-head release commit.
+
+
 ## 0.2.0
 
 - add a public reusable Python-library release workflow for owner-issued
