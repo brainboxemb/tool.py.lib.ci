@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+- add a public reusable Python-library release workflow for owner-issued
+  `/release vX.Y.Z <sha>` requests;
+- publish or idempotently verify one exact stable-head Git tag and GitHub
+  Release, failing closed when an existing tag points elsewhere;
+- add an optional repository-owned Python validator hook receiving version,
+  target SHA and release-notes output path before publication;
+- add canonical versioned CI and release consumer templates plus
+  `docs/new-library.md` onboarding;
+- keep generic GitHub release transaction in the tool while leaving
+  package/domain qualification in the consumer validator.
+
+
 ## 0.1.5
 
 - classify safely comparable non-forced push events for documentation-only package-CI skipping;
