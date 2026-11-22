@@ -1,0 +1,20 @@
+# template: tool.py.lib.ci/ci
+# template-version: 1
+#
+# Replace TOOL_PY_LIB_CI_RELEASE_SHA with one immutable released tool SHA.
+
+name: Python library CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  library-ci:
+    uses: brainboxemb/tool.py.lib.ci/.github/workflows/reusable-ci.yml@TOOL_PY_LIB_CI_RELEASE_SHA
+    with:
+      python_version: "3.12"

@@ -2,8 +2,8 @@
 
 Generic CI for ordinary Python libraries.
 
-The tool provides one reusable GitHub Actions workflow that builds and tests a
-Python library repository from the outside.
+The tool provides reusable GitHub Actions workflows for building/testing an
+ordinary Python library and for publishing one exact validated GitHub release.
 
 ## Purpose
 
@@ -17,7 +17,7 @@ Typical repositories include reusable Python libraries such as
 
 ## Responsibilities
 
-The first release must:
+Package CI:
 
 - check out the exact library source commit;
 - set up the requested Python version;
@@ -27,6 +27,14 @@ The first release must:
 - run the library test command against the installed wheel;
 - fail clearly on build, install or test failure;
 - expose a simple successful/failed workflow result.
+
+Release publication:
+
+- accept one owner-issued `/release vX.Y.Z <sha>` request;
+- require the requested SHA to equal the configured stable branch head;
+- optionally run one repository-owned Python validator against that exact SHA;
+- create or idempotently verify the exact Git tag and GitHub Release;
+- report the release URL back to the triggering issue.
 
 ## Hard boundaries
 
@@ -53,6 +61,8 @@ external test repository:
 
 ## Documentation
 
+- [`docs/new-library.md`](docs/new-library.md) — set up a new consumer repository from versioned templates.
+- [`templates/github/workflows/`](templates/github/workflows/README.md) — canonical CI/release wrappers.
 - `docs/requirements.md` — observable tool contract.
 - `docs/design.md` — implementation architecture.
 - `docs/plan.md` — current unfinished repository work only.
@@ -79,3 +89,22 @@ A repository can provide another `test_command`. The placeholders `{python}`
 and `{repo}` expand to the clean virtual-environment interpreter and the
 absolute library repository root. Commands are executed directly, not through
 a shell.
+
+
+## Repository release usage
+
+A consumer starts from the versioned
+[`release.yml` template](templates/github/workflows/release.yml) and pins one
+exact released tool SHA.
+
+The optional repository validator is a Python script that accepts:
+
+```text
+--version X.Y.Z
+--target-sha <40-character-sha>
+--notes-out <path>
+```
+
+It owns repository/package/domain qualification only. Tag creation, GitHub
+Release publication/idempotency and issue reporting remain in
+`tool.py.lib.ci`.

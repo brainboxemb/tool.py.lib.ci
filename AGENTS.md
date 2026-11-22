@@ -2,10 +2,12 @@
 
 ## Purpose
 
-`tool.py.lib.ci` is the generic CI tool for ordinary Python libraries.
+`tool.py.lib.ci` is the generic CI and release-publication tool for ordinary
+Python libraries.
 
-It proves the released-package shape of a repository from outside that repository's
-source package.
+It proves the released-package shape of a repository from outside that
+repository's source package and owns the generic exact-SHA GitHub release
+transaction.
 
 ## Hard boundary
 
@@ -20,6 +22,19 @@ Specifically, do not add:
 - CAD build or Pages publication.
 
 If a feature is specific to CAD repositories, it belongs in `tool.cad.ci`.
+
+## Release boundary
+
+Generic release command parsing, stable-head/tag verification, GitHub Release
+publication/idempotency and issue reporting belong here.
+
+Repository-specific package/domain qualification stays in the consumer through
+the documented Python validator hook. Never add Forge/SolidCraft/CAD release
+rules to this repository.
+
+Consumer wrappers under `templates/github/workflows/` are canonical and
+versioned. Real libraries copy those wrappers rather than inventing generic CI
+or release orchestration.
 
 ## Cache rule
 

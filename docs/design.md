@@ -3,15 +3,17 @@
 This document describes the implementation architecture for the requirements in
 `docs/requirements.md`.
 
-## 1. Public surface
+## 1. Public surfaces
 
-The primary public surface is one reusable GitHub Actions workflow:
+The released public workflows are:
 
 ```text
 .github/workflows/reusable-ci.yml
+.github/workflows/reusable-release.yml
 ```
 
-Repositories call that workflow at an exact released commit.
+Repositories call those workflows at one exact released commit. Canonical
+consumer wrappers live in `templates/github/workflows/`.
 
 ## 2. Thin workflow
 
@@ -168,3 +170,50 @@ caller.
 
 This output is observation only. It does not create package-release policy in
 the tool.
+
+
+## 13. Reusable release architecture
+
+The release workflow is deliberately separate from package CI and from
+repository-specific release qualification.
+
+```text
+issue comment /release vX.Y.Z <sha>
+  -> validate caller/event ownership
+  -> checkout exact called tool revision
+  -> parse command with scripts/release_command.py
+  -> checkout exact consumer SHA with full refs/tags
+  -> optional consumer validator
+  -> scripts/release_command.py publish
+       -> generic publish_exact_release()
+       -> stable HEAD check
+       -> tag/ref check
+       -> GitHub Release create or idempotent verify
+       -> verify final tag resolves to exact SHA
+  -> comment release URL on triggering issue
+```
+
+The generic GitHub transaction lives in `scripts/publish_release.py` and is
+also reused by this tool's own release script path. There is one tag/release
+implementation, not a consumer copy.
+
+The consumer validator is the policy extension point. It runs from the exact
+requested source checkout and receives only version, target SHA and notes path
+as its public argument contract. The workflow does not know package layout,
+changelog format, durable evidence or domain release blockers.
+
+The source checkout uses full refs/tags because a repository validator may
+validate durable/generated refs. Credentials are not persisted. The validator
+runs before `GITHUB_TOKEN` is passed to the publication script.
+
+## 14. Consumer template architecture
+
+`templates/manifest.json` records canonical template id, integer version and
+public workflow surface.
+
+The copied wrappers contain triggers, permissions and repository-owned inputs
+only. They never contain package build/test or GitHub tag/release
+implementation.
+
+Template-version increments when the copied wrapper contract changes. Tool
+semantic version and template version remain separate concepts.

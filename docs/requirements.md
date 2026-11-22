@@ -198,3 +198,71 @@ caller avoid its own downstream release/publication job when that caller's
 policy says documentation-only changes cannot produce a release.
 
 The tool does not decide consumer release policy.
+
+
+## 17. Reusable release publication
+
+The tool exposes a second public GitHub Actions workflow for owner-issued
+Python-library releases.
+
+The workflow accepts:
+
+- exact issue-comment command `/release vX.Y.Z <40-character-sha>`;
+- triggering issue number;
+- stable branch name, default `main`;
+- optional repository-relative Python validator path.
+
+Requirements:
+
+- only an issue-comment release request is eligible;
+- the triggering actor must equal the repository owner;
+- input command/issue must match the triggering event;
+- version is strict plain SemVer and SHA is exactly 40 lowercase hex;
+- the exact called `tool.py.lib.ci` revision is used;
+- the exact requested library source is checked out with refs/tags available;
+- checkout credentials are not persisted;
+- the requested target SHA must equal current configured stable-branch HEAD;
+- a pre-existing tag on another commit fails closed;
+- an existing matching tag/release is idempotent success;
+- a missing release is created and the resulting tag is verified to resolve to
+  the requested SHA;
+- publication outputs include tag, target SHA and release URL;
+- the workflow records the result on the triggering issue.
+
+The release workflow owns generic GitHub tag/release transaction only. It does
+not encode Forge/SolidCraft/CAD or package-specific release policy.
+
+### Repository validator hook
+
+When `validator_path` is set, the exact requested repository source is allowed
+to execute one Python validator before publication.
+
+The path must be safe, repository-relative and end in `.py`.
+
+The validator is called with:
+
+```text
+--version X.Y.Z
+--target-sha <sha>
+--notes-out <temporary path>
+```
+
+A non-zero validator exit prevents publication. The validator may write release
+notes to the provided path. It must not create Git tags/releases or own GitHub
+publication.
+
+## 18. Versioned consumer templates
+
+The repository ships canonical wrappers for package CI and release publication.
+
+Each template:
+
+- has stable `template` id and positive integer `template-version`;
+- is also listed in a machine-readable manifest;
+- contains one explicit immutable release-SHA replacement marker;
+- calls only a documented public reusable workflow;
+- contains no copied generic checkout/build/test/tag/release implementation;
+- contains no Forge/SolidCraft/CAD policy.
+
+A new library repository starts from these templates and
+`docs/new-library.md`, not from a locally invented generic workflow.

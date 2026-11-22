@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "templates": {
+    "github/workflows/ci.yml": {
+      "id": "tool.py.lib.ci/ci",
+      "version": 1,
+      "surface": "reusable-ci.yml"
+    },
+    "github/workflows/release.yml": {
+      "id": "tool.py.lib.ci/release",
+      "version": 1,
+      "surface": "reusable-release.yml"
+    }
+  }
+}

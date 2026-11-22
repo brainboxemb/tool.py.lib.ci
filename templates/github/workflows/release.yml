@@ -1,0 +1,31 @@
+# template: tool.py.lib.ci/release
+# template-version: 1
+#
+# Owner-issued generic Python-library release.
+# Replace TOOL_PY_LIB_CI_RELEASE_SHA with one immutable released tool SHA.
+# Add validator_path only when the repository owns extra release qualification.
+
+name: Publish library release
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: >-
+      !github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/release ')
+    permissions:
+      contents: write
+      issues: write
+    uses: brainboxemb/tool.py.lib.ci/.github/workflows/reusable-release.yml@TOOL_PY_LIB_CI_RELEASE_SHA
+    with:
+      command: ${{ github.event.comment.body }}
+      issue_number: ${{ github.event.issue.number }}
+      stable_ref: main
+      # Optional repository-owned hook:
+      # validator_path: scripts/release/validate_release.py
