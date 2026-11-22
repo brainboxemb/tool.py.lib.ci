@@ -223,9 +223,10 @@ Requirements:
 - checkout credentials are not persisted;
 - the requested target SHA must equal current configured stable-branch HEAD;
 - a pre-existing tag on another commit fails closed;
-- an existing matching tag/release is idempotent success;
-- a missing release is created and the resulting tag is verified to resolve to
-  the requested SHA;
+- a pre-existing lightweight release tag fails closed; release tags are annotated;
+- an existing matching annotated tag/release is idempotent success;
+- a missing release first creates an annotated tag object/ref and verifies that
+  it resolves to the requested SHA before creating the GitHub Release;
 - publication outputs include tag, target SHA and release URL;
 - the workflow records the result on the triggering issue.
 
