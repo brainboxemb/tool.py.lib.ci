@@ -187,7 +187,7 @@ issue comment /release vX.Y.Z <sha>
   -> scripts/release_command.py publish
        -> generic publish_exact_release()
        -> stable HEAD check
-       -> tag/ref check
+       -> annotated tag object/ref check or creation
        -> GitHub Release create or idempotent verify
        -> verify final tag resolves to exact SHA
   -> comment release URL on triggering issue
@@ -217,3 +217,19 @@ implementation.
 
 Template-version increments when the copied wrapper contract changes. Tool
 semantic version and template version remain separate concepts.
+
+
+### Annotated tag contract
+
+A missing release tag is created explicitly through the Git Data API:
+
+```text
+POST git/tags   -> annotated tag object pointing to target commit
+POST git/refs   -> refs/tags/vX.Y.Z points to that tag object
+verify          -> tag object resolves to exact target commit
+POST releases   -> release references the already-existing tag
+```
+
+A lightweight pre-existing release tag is rejected. This keeps the generic
+publisher compatible with libraries whose immutable release contract requires
+annotated tags.
