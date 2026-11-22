@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+from typing import NamedTuple
 from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -20,8 +20,7 @@ _VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
-@dataclass(frozen=True)
-class ReleaseResult:
+class ReleaseResult(NamedTuple):
     tag: str
     target_sha: str
     url: str
