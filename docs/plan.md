@@ -32,7 +32,7 @@ Execution order:
 4. ship versioned CI/release consumer templates plus new-library onboarding;
 5. cover command parsing, stable-head/tag idempotency, validator ordering,
    permissions and template contracts in repository tests;
-6. release only after repository CI is green;
+6. release candidate is `0.2.0`; release only after repository CI is green;
 7. update `tool.py.lib.ci.test` to the exact release and externally prove the
    public release workflow;
 8. only then replace Forge's locally invented generic release workflow with the
