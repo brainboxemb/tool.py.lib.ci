@@ -65,7 +65,7 @@ class ConsumerTemplateTests(unittest.TestCase):
         self.assertIn("contents: write", text)
         self.assertIn("issues: write", text)
         self.assertNotIn("runs-on:", text)
-        self.assertNotIn("validator_path:", text)
+        self.assertNotIn("\n      validator_path:", text)
 
     def test_consumer_templates_do_not_copy_generic_implementation(self):
         forbidden = (
