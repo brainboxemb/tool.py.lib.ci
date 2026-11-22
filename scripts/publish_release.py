@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Publish VERSION after the exact main commit passes CI."""
+"""Publish exact GitHub releases and the tool's own VERSION release."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
@@ -10,15 +11,32 @@ import re
 import subprocess
 import sys
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
 _VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+_SHA = re.compile(r"^[0-9a-f]{40}$")
+
+
+@dataclass(frozen=True)
+class ReleaseResult:
+    tag: str
+    target_sha: str
+    url: str
+    created: bool
+
+
+def exact_sha(value: str, name: str = "SHA") -> str:
+    value = value.strip()
+    if _SHA.fullmatch(value) is None:
+        raise ValueError(f"{name} must contain exactly 40 lowercase hex characters")
+    return value
 
 
 def release_version(root: Path = ROOT) -> str:
-    """Return the declared release version after source checks."""
+    """Return the declared self-release version after source checks."""
 
     version = (root / "VERSION").read_text(encoding="utf-8").strip()
     if not _VERSION.fullmatch(version):
@@ -81,50 +99,135 @@ def _request(
         },
     )
     with urlopen(request) as response:
-        return json.loads(response.read().decode("utf-8"))
+        body = response.read().decode("utf-8")
+        return {} if not body else json.loads(body)
+
+
+def _tag_commit(base: str, tag: str, token: str) -> str | None:
+    """Resolve lightweight or annotated tag to its immutable commit."""
+
+    try:
+        reference = _request(f"{base}/git/ref/tags/{quote(tag, safe='')}", token)
+    except HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
+
+    target = reference.get("object") or {}
+    for _ in range(5):
+        kind = target.get("type")
+        sha = target.get("sha")
+        if not isinstance(sha, str) or _SHA.fullmatch(sha) is None:
+            raise ValueError(f"release tag {tag} has an invalid target")
+        if kind == "commit":
+            return sha
+        if kind != "tag":
+            raise ValueError(
+                f"release tag {tag} targets unsupported object {kind!r}"
+            )
+        value = _request(f"{base}/git/tags/{sha}", token)
+        target = value.get("object") or {}
+
+    raise ValueError(f"release tag {tag} has excessive tag indirection")
+
+
+def stable_head(repository: str, ref: str, token: str) -> str:
+    """Return exact current SHA for one required stable branch."""
+
+    ref = ref.strip()
+    if not ref or ref.startswith("/") or ".." in ref.split("/"):
+        raise ValueError("stable_ref must be a safe non-empty branch name")
+    base = f"https://api.github.com/repos/{repository}"
+    value = _request(f"{base}/git/ref/heads/{quote(ref, safe='')}", token)
+    target = (value.get("object") or {}).get("sha")
+    return exact_sha(str(target or ""), f"{ref} head")
+
+
+def publish_exact_release(
+    repository: str,
+    version: str,
+    sha: str,
+    token: str,
+    *,
+    stable_ref: str = "main",
+    notes: str = "",
+) -> ReleaseResult:
+    """Publish or verify one exact SemVer release at the stable branch head."""
+
+    repository = repository.strip()
+    if repository.count("/") != 1:
+        raise ValueError("repository must be owner/name")
+    if _VERSION.fullmatch(version) is None:
+        raise ValueError("version must be plain X.Y.Z SemVer")
+    sha = exact_sha(sha, "target SHA")
+    if not token:
+        raise ValueError("GitHub token is required")
+
+    head = stable_head(repository, stable_ref, token)
+    if sha != head:
+        raise ValueError(
+            f"release target must equal {stable_ref} HEAD: {head}"
+        )
+
+    tag = f"v{version}"
+    base = f"https://api.github.com/repos/{repository}"
+    tag_sha = _tag_commit(base, tag, token)
+    if tag_sha is not None and tag_sha != sha:
+        raise ValueError(
+            f"{tag} already points to {tag_sha}; refusing to relabel {sha}"
+        )
+
+    try:
+        existing = _request(f"{base}/releases/tags/{quote(tag, safe='')}", token)
+    except HTTPError as exc:
+        if exc.code != 404:
+            raise
+    else:
+        if tag_sha is None:
+            raise ValueError(f"release {tag} exists but tag reference is missing")
+        url = str(existing.get("html_url") or "")
+        if not url:
+            raise ValueError(f"release {tag} has no html_url")
+        return ReleaseResult(tag, sha, url, False)
+
+    data = {
+        "tag_name": tag,
+        "target_commitish": sha,
+        "name": tag,
+        "draft": False,
+        "prerelease": False,
+    }
+    if notes.strip():
+        data["body"] = notes
+    else:
+        data["generate_release_notes"] = True
+
+    created = _request(f"{base}/releases", token, method="POST", data=data)
+    actual = _tag_commit(base, tag, token)
+    if actual != sha:
+        raise ValueError(
+            f"published {tag} resolves to {actual!r}, expected {sha}"
+        )
+    url = str(created.get("html_url") or "")
+    if not url:
+        raise ValueError(f"published release {tag} has no html_url")
+    return ReleaseResult(tag, sha, url, True)
 
 
 def publish(repository: str, sha: str, token: str, root: Path = ROOT) -> str:
-    """Publish the exact tested main revision when VERSION changed."""
+    """Publish this tool's declared VERSION only when VERSION changed."""
 
     if not version_changed(root):
         return "VERSION unchanged; no release"
 
     version = release_version(root)
-    tag = f"v{version}"
-    base = f"https://api.github.com/repos/{repository}"
-
-    try:
-        existing = _request(f"{base}/releases/tags/{tag}", token)
-    except HTTPError as exc:
-        if exc.code != 404:
-            raise
-    else:
-        target = str(existing.get("target_commitish", ""))
-        if target and target != sha:
-            raise ValueError(
-                f"{tag} already points to {target}, expected {sha}"
-            )
-        return f"release already exists: {tag}"
-
-    _request(
-        f"{base}/releases",
-        token,
-        method="POST",
-        data={
-            "tag_name": tag,
-            "target_commitish": sha,
-            "name": f"tool.py.lib.ci {version}",
-            "body": f"tool.py.lib.ci {version}",
-            "draft": False,
-            "prerelease": False,
-        },
-    )
-    return f"published release: {tag} at {sha}"
+    result = publish_exact_release(repository, version, sha, token)
+    state = "published release" if result.created else "release already exists"
+    return f"{state}: {result.tag} at {result.target_sha}"
 
 
 def main() -> int:
-    """Publish using GitHub Actions environment values."""
+    """Publish this repository using GitHub Actions environment values."""
 
     repository = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("GITHUB_SHA", "")
