@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       command:
-        description: Exact issue-comment release command: /release vX.Y.Z <40-char-sha>.
+        description: "Exact issue-comment release command: /release vX.Y.Z <40-char-sha>."
         required: true
         type: string
       issue_number:
