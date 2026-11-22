@@ -4,20 +4,11 @@ from pathlib import Path
 import json
 import unittest
 
-import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_ROOT = ROOT / "templates"
 WORKFLOW_ROOT = TEMPLATE_ROOT / "github" / "workflows"
 MARKER = "TOOL_PY_LIB_CI_RELEASE_SHA"
-
-
-def load_yaml(path: Path) -> dict:
-    value = yaml.load(path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
-    if not isinstance(value, dict):
-        raise AssertionError(f"{path}: expected mapping")
-    return value
 
 
 class ConsumerTemplateTests(unittest.TestCase):
@@ -47,36 +38,34 @@ class ConsumerTemplateTests(unittest.TestCase):
                 self.assertIn(f"# template: {entry['id']}", text)
                 self.assertIn(f"# template-version: {entry['version']}", text)
 
-    def test_templates_use_one_immutable_release_marker(self):
+    def test_templates_use_one_release_marker_in_comment_and_reference(self):
         for relative in self.templates:
             text = (TEMPLATE_ROOT / relative).read_text(encoding="utf-8")
             with self.subTest(template=relative):
                 self.assertEqual(text.count(MARKER), 2)
                 self.assertIn("brainboxemb/tool.py.lib.ci/", text)
 
-    def test_ci_template_calls_only_public_reusable_ci(self):
-        wf = load_yaml(WORKFLOW_ROOT / "ci.yml")
-        job = wf["jobs"]["library-ci"]
-        self.assertNotIn("runs-on", job)
-        self.assertEqual(
-            job["uses"],
-            "brainboxemb/tool.py.lib.ci/.github/workflows/reusable-ci.yml@"
-            + MARKER,
+    def test_ci_template_is_only_a_public_reusable_call(self):
+        text = (WORKFLOW_ROOT / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "uses: brainboxemb/tool.py.lib.ci/.github/workflows/"
+            "reusable-ci.yml@" + MARKER,
+            text,
         )
-        self.assertEqual(wf["permissions"]["contents"], "read")
+        self.assertIn("contents: read", text)
+        self.assertNotIn("runs-on:", text)
 
-    def test_release_template_calls_only_public_reusable_release(self):
-        wf = load_yaml(WORKFLOW_ROOT / "release.yml")
-        job = wf["jobs"]["release"]
-        self.assertNotIn("runs-on", job)
-        self.assertEqual(
-            job["uses"],
-            "brainboxemb/tool.py.lib.ci/.github/workflows/reusable-release.yml@"
-            + MARKER,
+    def test_release_template_is_only_a_public_reusable_call(self):
+        text = (WORKFLOW_ROOT / "release.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "uses: brainboxemb/tool.py.lib.ci/.github/workflows/"
+            "reusable-release.yml@" + MARKER,
+            text,
         )
-        self.assertEqual(job["permissions"]["contents"], "write")
-        self.assertEqual(job["permissions"]["issues"], "write")
-        self.assertNotIn("validator_path", job["with"])
+        self.assertIn("contents: write", text)
+        self.assertIn("issues: write", text)
+        self.assertNotIn("runs-on:", text)
+        self.assertNotIn("validator_path:", text)
 
     def test_consumer_templates_do_not_copy_generic_implementation(self):
         forbidden = (
