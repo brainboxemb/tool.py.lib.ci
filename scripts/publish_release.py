@@ -102,8 +102,8 @@ def _request(
         return {} if not body else json.loads(body)
 
 
-def _tag_commit(base: str, tag: str, token: str) -> str | None:
-    """Resolve lightweight or annotated tag to its immutable commit."""
+def _tag_reference(base: str, tag: str, token: str) -> dict | None:
+    """Return one tag ref target object, or None when the ref is absent."""
 
     try:
         reference = _request(f"{base}/git/ref/tags/{quote(tag, safe='')}", token)
@@ -111,13 +111,27 @@ def _tag_commit(base: str, tag: str, token: str) -> str | None:
         if exc.code == 404:
             return None
         raise
-
     target = reference.get("object") or {}
+    kind = target.get("type")
+    sha = target.get("sha")
+    if kind not in {"tag", "commit"}:
+        raise ValueError(
+            f"release tag {tag} targets unsupported object {kind!r}"
+        )
+    exact_sha(str(sha or ""), f"release tag {tag} target")
+    return target
+
+
+def _tag_commit(base: str, tag: str, token: str) -> str | None:
+    """Resolve an existing tag ref to its immutable commit."""
+
+    target = _tag_reference(base, tag, token)
+    if target is None:
+        return None
+
     for _ in range(5):
         kind = target.get("type")
-        sha = target.get("sha")
-        if not isinstance(sha, str) or _SHA.fullmatch(sha) is None:
-            raise ValueError(f"release tag {tag} has an invalid target")
+        sha = exact_sha(str(target.get("sha") or ""), f"release tag {tag} target")
         if kind == "commit":
             return sha
         if kind != "tag":
@@ -128,6 +142,40 @@ def _tag_commit(base: str, tag: str, token: str) -> str | None:
         target = value.get("object") or {}
 
     raise ValueError(f"release tag {tag} has excessive tag indirection")
+
+
+def _create_annotated_tag(
+    base: str,
+    tag: str,
+    target_sha: str,
+    token: str,
+) -> None:
+    """Create one annotated release tag and ref for the exact target commit."""
+
+    created = _request(
+        f"{base}/git/tags",
+        token,
+        method="POST",
+        data={
+            "tag": tag,
+            "message": tag,
+            "object": target_sha,
+            "type": "commit",
+        },
+    )
+    tag_object_sha = exact_sha(
+        str(created.get("sha") or ""),
+        f"annotated tag object for {tag}",
+    )
+    _request(
+        f"{base}/git/refs",
+        token,
+        method="POST",
+        data={
+            "ref": f"refs/tags/{tag}",
+            "sha": tag_object_sha,
+        },
+    )
 
 
 def stable_head(repository: str, ref: str, token: str) -> str:
@@ -170,11 +218,17 @@ def publish_exact_release(
 
     tag = f"v{version}"
     base = f"https://api.github.com/repos/{repository}"
-    tag_sha = _tag_commit(base, tag, token)
-    if tag_sha is not None and tag_sha != sha:
-        raise ValueError(
-            f"{tag} already points to {tag_sha}; refusing to relabel {sha}"
-        )
+    tag_ref = _tag_reference(base, tag, token)
+    if tag_ref is not None:
+        if tag_ref.get("type") != "tag":
+            raise ValueError(f"{tag} exists but is not an annotated tag")
+        tag_sha = _tag_commit(base, tag, token)
+        if tag_sha != sha:
+            raise ValueError(
+                f"{tag} already points to {tag_sha}; refusing to relabel {sha}"
+            )
+    else:
+        tag_sha = None
 
     try:
         existing = _request(f"{base}/releases/tags/{quote(tag, safe='')}", token)
@@ -189,9 +243,16 @@ def publish_exact_release(
             raise ValueError(f"release {tag} has no html_url")
         return ReleaseResult(tag, sha, url, False)
 
+    if tag_ref is None:
+        _create_annotated_tag(base, tag, sha, token)
+        actual = _tag_reference(base, tag, token)
+        if actual is None or actual.get("type") != "tag":
+            raise ValueError(f"failed to create annotated release tag {tag}")
+        if _tag_commit(base, tag, token) != sha:
+            raise ValueError(f"annotated release tag {tag} does not resolve to {sha}")
+
     data = {
         "tag_name": tag,
-        "target_commitish": sha,
         "name": tag,
         "draft": False,
         "prerelease": False,
